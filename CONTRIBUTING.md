@@ -70,6 +70,7 @@ The easiest way to make and test changes is by setting up a development installa
        * On Windows, run `./runtime/Path{space}of{space}Building-PoE2.exe`
        * On Linux, run `wine ./runtime/Path{space}of{space}Building-PoE2.exe`
        * <ins>Note for Linux users:</ins> `chmod +x` only fixes the execute bit. The file is still a Windows executable, so Wine is required to run it.
+       * On Apple Silicon macOS, follow [the native build instructions](docs/macos.md). The Windows executable does not run natively on macOS.
 
 You can now use the shortcut to run the program from the repository. Running the program in this manner automatically enables "Dev Mode", which has some handy debugging feature:
 * `F5` restarts the program in-place (this is what usually happens when an update is applied).

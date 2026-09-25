@@ -1,0 +1,55 @@
+name: Build native macOS app
+
+on:
+  push:
+    branches: [dev]
+  pull_request:
+    branches: [dev]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build dependencies
+        run: brew install cmake ninja pkgconf
+      - name: Package Apple Silicon app
+        run: tools/macos/package_app.sh
+      - name: Parse Lua sources with bundled LuaJIT
+        run: |
+          git ls-files src | build/luajit/bin/luajit -e '
+            local count = 0
+            for path in io.lines() do
+              if path:match("%.lua$") then
+                local chunk, err = loadfile(path)
+                assert(chunk, err)
+                count = count + 1
+              end
+            end
+            assert(count > 0)
+            print("Parsed " .. count .. " Lua files")
+          '
+      - name: Verify artifact
+        run: |
+          set -euo pipefail
+          app="dist/macos-arm64/Path of Building (PoE2).app"
+          exe="${app}/Contents/MacOS/PathOfBuilding-PoE2"
+          file "${exe}" | grep -q 'arm64'
+          codesign --verify --strict "${exe}"
+          codesign --verify --strict --deep "${app}"
+          for library in "${app}"/Contents/Frameworks/*.dylib; do
+            codesign --verify --strict "${library}"
+            vtool -show-build "${library}" | grep -Eq 'minos (11|12|13)\.'
+          done
+          vtool -show-build "${exe}" | grep -q 'minos 13.0'
+          test -f "${app}/Contents/Resources/src/Launch.lua"
+          test -f "${app}/Contents/Resources/runtime/SimpleGraphic/Fonts/Bitstream Vera Sans Mono.tgf"
+          cd dist/macos-arm64
+          shasum -a 256 -c PathOfBuilding-PoE2-macos-arm64.zip.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PathOfBuilding-PoE2-macos-arm64
+          path: |
+            dist/macos-arm64/PathOfBuilding-PoE2-macos-arm64.zip
+            dist/macos-arm64/PathOfBuilding-PoE2-macos-arm64.zip.sha256

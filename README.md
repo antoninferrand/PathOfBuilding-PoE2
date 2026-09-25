@@ -9,6 +9,8 @@
 ## Download
 Head over to the [Releases](https://github.com/PathOfBuildingCommunity/PathOfBuilding-PoE2/releases) page to download the install wizard or portable zip.
 
+The native macOS build is distributed as `PathOfBuilding-PoE2-macos-arm64.zip` for Apple Silicon Macs. Move the extracted `.app` to Applications. macOS updates are installed by downloading a newer release; the in-app button opens the Releases page. See [macOS build and installation instructions](docs/macos.md).
+
 ## Features
 * Comprehensive offence + defence calculations:
   * Calculate your skill DPS, damage over time, life/mana/ES totals and much more!
