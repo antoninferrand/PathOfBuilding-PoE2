@@ -1,3 +1,5 @@
+<!-- cspell:words pkgconf zstd otool vtool stevep -->
+
 # Native macOS build
 
 The first native macOS target is Apple Silicon (`arm64`) with a macOS 13 deployment target. The app uses a Cocoa/SDL3 host and the same Lua application data as the Windows build. Intel Macs and in-app automatic updates are not yet supported.

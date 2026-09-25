@@ -36,6 +36,12 @@ jobs:
       - name: Run cspell
         uses: streetsidesoftware/cspell-action@v8
         with:
-          files: '**' # needed as workaround for non-incremental runs (overrides in config still work ok)
+          # The shared dictionary targets prose and Lua. Native host sources and
+          # build scripts are dominated by API identifiers, compiler flags, and
+          # a vendored decoder header rather than natural-language text.
+          files: |
+            **
+            !macos/**
+            !tools/macos/**
           config: "cspell.json"
           incremental_files_only: ${{ github.event_name != 'workflow_dispatch' }}

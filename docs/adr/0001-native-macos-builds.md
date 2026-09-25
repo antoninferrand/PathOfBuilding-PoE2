@@ -1,3 +1,5 @@
+<!-- cspell:words stevep otool -->
+
 # ADR 0001: Native macOS builds
 
 - Status: Accepted (implementation in progress; release validation pending)
@@ -55,7 +57,7 @@ Add `.github/workflows/macos.yml` for pull requests to `dev`, pushes to `dev`, a
 
 Add a macOS release job that checks out the exact release tag and uploads the macOS ZIP and checksum to the **same GitHub Release** that receives the Windows assets. Avoid a separate macOS tag scheme unless maintainers later choose independent release timing. Keep the existing Windows installer job and its triggers working.
 
-For public releases, sign bundled libraries and the app with Developer ID, enable the hardened-runtime entitlements required by LuaJIT, notarize, staple, and verify the final ZIP after signing. Signing credentials belong only in release-job secrets. Pull-request builds may remain unsigned. The release job must fail clearly when public signing is required but credentials or notarization are unavailable; it must not silently publish an unnotarized asset as an official macOS release.
+For public releases, sign bundled libraries and the app with Developer ID, enable the hardened-runtime entitlements required by LuaJIT, notarize, staple, and verify the final ZIP after signing. Signing credentials belong only in release-job secrets. Pull-request builds may remain unsigned. The release job must fail clearly when public signing is required but credentials or notarization are unavailable; it must not silently publish an asset without notarization as an official macOS release.
 
 **Exit check:** a release tag produces both Windows and macOS assets from the intended revision, and the macOS asset launches on a clean Mac through the normal Finder installation flow.
 
