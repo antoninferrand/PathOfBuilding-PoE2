@@ -79,7 +79,7 @@ function main:Init()
 	if not ignoreBuild then
 		self:SetMode("BUILD", false, "Unnamed build")
 	end
-	if launch.devMode or (GetScriptPath() == GetRuntimePath() and not launch.installedMode) then
+	if not launch.isMacOS and (launch.devMode or (GetScriptPath() == GetRuntimePath() and not launch.installedMode)) then
 		-- If running in dev mode or standalone mode, put user data in the script path
 		self.userPath = GetScriptPath().."/"
 	else
@@ -170,7 +170,7 @@ function main:Init()
 							table.insert(bases, { variantName = "Runemastered", baseName = "Runemastered " .. baseBase })
 						end
 						if #bases > 1 then
-						newItem.baseList = newItem.baseList ?? {}
+						newItem.baseList = newItem.baseList or {}
 							local baseLines = {}
 							-- Add variants for each base
 							for _, base in ipairs(bases) do
@@ -258,7 +258,11 @@ function main:Init()
 		return launch.updateAvailable and launch.updateAvailable ~= "none"
 	end
 	self.controls.checkUpdate = new("ButtonControl"):ButtonControl({ "BOTTOMLEFT", self.anchorMain, "BOTTOMLEFT" }, { 0, -24, 140, 20 }, "", function()
-		launch:CheckForUpdate()
+		if launch.isMacOS then
+			OpenURL("https://github.com/PathOfBuildingCommunity/PathOfBuilding-PoE2/releases")
+		else
+			launch:CheckForUpdate()
+		end
 	end)
 	self.controls.checkUpdate.shown = function()
 		return not launch.devMode and (not launch.updateAvailable or launch.updateAvailable == "none")
@@ -364,7 +368,7 @@ function main:SaveModCache()
 				out:write("end)();(function()\n")
 				count = 0
 			else
-				count += 1
+				count = count + 1
 			end
 		end
 	end
@@ -1096,6 +1100,9 @@ function main:OpenOptionsPopup(savedState)
 	controls.betaTest = new("CheckBoxControl"):CheckBoxControl({ "TOPLEFT", controls.sectionAnchor, "TOPLEFT" }, { currentX + defaultLabelPlacementX, currentY, 20 }, "^7Opt-in to weekly beta test builds:", function(state)
 		self.betaTest = state
 	end)
+	controls.betaTest.shown = function()
+		return not launch.isMacOS
+	end
 
 	nextRow()
 	controls.edgeSearchHighlight = new("CheckBoxControl"):CheckBoxControl({ "TOPLEFT", controls.sectionAnchor, "TOPLEFT" }, { currentX + defaultLabelPlacementX, currentY, 20 }, "^7Show search circles at viewport edge", function(state)
@@ -1267,7 +1274,7 @@ function main:OpenOptionsPopup(savedState)
 		if self.mode == "LIST" then
 			self.modes.LIST:BuildList()
 		end
-		if not launch.devMode then
+		if not launch.devMode and not launch.isMacOS then
 			main:SetManifestBranch(self.betaTest and "beta" or "master")
 		end
 		SetDPIScaleOverridePercent(self.dpiScaleOverridePercent)
@@ -1364,6 +1371,9 @@ function main:OpenOptionsPopup(savedState)
 end
 
 function main:SetManifestBranch(branchName)
+	if launch.isMacOS then
+		return
+	end
 	local xml = require("xml")
 	local manifestLocation = "manifest.xml"
 	local localManXML = xml.LoadXMLFile(manifestLocation)

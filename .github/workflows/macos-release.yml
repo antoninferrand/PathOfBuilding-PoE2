@@ -1,0 +1,92 @@
+name: Publish native macOS app
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to rebuild
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, 'v')
+    runs-on: macos-15
+    steps:
+      - name: Resolve release tag
+        id: release
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          if [ "${EVENT_NAME}" = "workflow_dispatch" ]; then
+            echo "tag=${INPUT_TAG}" >> "${GITHUB_OUTPUT}"
+          else
+            echo "tag=${RELEASE_TAG}" >> "${GITHUB_OUTPUT}"
+          fi
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.release.outputs.tag }}
+      - name: Require signing credentials
+        env:
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          NOTARY_KEY: ${{ secrets.NOTARY_KEY }}
+          NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
+          NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
+        run: |
+          : "${MACOS_CERT_P12:?Missing Developer ID certificate}"
+          : "${MACOS_CERT_PASSWORD:?Missing certificate password}"
+          : "${NOTARY_KEY:?Missing notarization key}"
+          : "${NOTARY_KEY_ID:?Missing notarization key ID}"
+          : "${NOTARY_ISSUER_ID:?Missing notarization issuer ID}"
+      - name: Install build dependencies
+        run: brew install cmake ninja pkgconf
+      - name: Package app
+        env:
+          POB_BRANCH: master
+          POB_EXPECTED_VERSION: ${{ steps.release.outputs.tag }}
+        run: tools/macos/package_app.sh
+      - name: Import Developer ID certificate
+        env:
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+        run: |
+          set -euo pipefail
+          keychain="${RUNNER_TEMP}/pob-signing.keychain-db"
+          password="$(uuidgen)"
+          echo "POB_KEYCHAIN=${keychain}" >> "${GITHUB_ENV}"
+          printf '%s' "${MACOS_CERT_P12}" | base64 -D > "${RUNNER_TEMP}/pob-cert.p12"
+          security create-keychain -p "${password}" "${keychain}"
+          security unlock-keychain -p "${password}" "${keychain}"
+          security import "${RUNNER_TEMP}/pob-cert.p12" -k "${keychain}" -P "${MACOS_CERT_PASSWORD}" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "${password}" "${keychain}"
+          security list-keychains -d user -s "${keychain}"
+          rm -f "${RUNNER_TEMP}/pob-cert.p12"
+      - name: Sign, notarize, and staple
+        env:
+          MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+          NOTARY_KEY: ${{ secrets.NOTARY_KEY }}
+          NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
+          NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
+        run: tools/macos/sign_and_notarize.sh
+      - name: Upload to existing release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          gh release upload "${TAG}" \
+            dist/macos-arm64/PathOfBuilding-PoE2-macos-arm64.zip \
+            dist/macos-arm64/PathOfBuilding-PoE2-macos-arm64.zip.sha256 \
+            --clobber
+      - name: Remove temporary keychain
+        if: always()
+        run: |
+          if [ -n "${POB_KEYCHAIN:-}" ]; then
+            security delete-keychain "${POB_KEYCHAIN}" 2>/dev/null || true
+          fi

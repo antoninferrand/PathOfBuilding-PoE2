@@ -94,6 +94,20 @@ If updated this way making a PR to https://github.com/Regisle/TimelessJewelData 
 To do this follow steps 1-5 the same and choose the other option for step 6.
 
 
+## Native macOS release
+
+The `macos.yml` workflow builds an unsigned Apple Silicon ZIP for review. The
+`macos-release.yml` workflow runs when a GitHub Release is published, checks out
+its tag, signs and notarizes the app, and adds the ZIP and SHA-256 file to that
+same release. Set the `MACOS_CERT_P12`, `MACOS_CERT_PASSWORD`, `MACOS_SIGN_IDENTITY`,
+`NOTARY_KEY`, `NOTARY_KEY_ID`, and `NOTARY_ISSUER_ID` repository secrets before
+publishing. The release job fails if signing or notarization cannot complete.
+
+Test the packaged app on a clean Apple Silicon Mac, including a macOS 13 system,
+before the first public release. Check launch, file saving, paste, build codes,
+network requests, sign-in, and manual update links. See [docs/macos.md](docs/macos.md)
+for the local build and package commands.
+
 ## Installer creation
 
 Path of Building Community offers both installable and standalone releases. They're

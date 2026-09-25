@@ -15,6 +15,7 @@ ConExecute("set vid_resizable 3")
 
 ---@diagnostic disable-next-line: lowercase-global
 launch = { }
+launch.isMacOS = jit.os == "OSX"
 SetMainObject(launch)
 jit.opt.start('maxtrace=20000', 'maxmcode=8192')
 collectgarbage("setpause", 400)
@@ -29,7 +30,7 @@ function launch:OnInit()
 	self.subScripts = { }
 	self.startTime = startTime
 	local firstRunFile = io.open("first.run", "r")
-	if firstRunFile then
+	if firstRunFile and not self.isMacOS then
 		firstRunFile:close()
 		os.remove("first.run")
 		-- This is a fresh installation
@@ -43,6 +44,9 @@ function launch:OnInit()
 			self:ApplyUpdate(updateMode)
 			return
 		end
+	end
+	if firstRunFile and self.isMacOS then
+		firstRunFile:close()
 	end
 	local xml = require("xml")
 	local localManXML = xml.LoadXMLFile("manifest.xml") or xml.LoadXMLFile("../manifest.xml")
@@ -321,6 +325,10 @@ function launch:DownloadPage(url, callback, params)
 end
 
 function launch:ApplyUpdate(mode)
+	if self.isMacOS then
+		OpenURL("https://github.com/PathOfBuildingCommunity/PathOfBuilding-PoE2/releases")
+		return
+	end
 	if mode == "basic" then
 		-- Need to revert to the basic environment to fully apply the update
 		LoadModule("UpdateApply")("Update/opFile.txt")
@@ -335,6 +343,9 @@ function launch:ApplyUpdate(mode)
 end
 
 function launch:CheckForUpdate(inBackground)
+	if self.isMacOS then
+		return
+	end
 	if self.updateCheckRunning then
 		return
 	end
