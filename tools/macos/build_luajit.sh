@@ -14,11 +14,14 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 prefix="${repo_root}/build/luajit"
 src="${repo_root}/build/luajit-src"
-# Pinned LuaJIT v2.1 (2026-06-13). Update deliberately.
-commit="194d7f2d635a11193177f0ed820ae419148f0b70"
+# Match the Windows runtime's LuaJIT parser (2026-07-20), which supports
+# compound assignments, continue, safe navigation, and nil coalescing.
+commit="2460b3ff93a1c955de3d62cfc825de7d68dc272e"
 
 existing="$(ls "${prefix}"/lib/libluajit-5.1.*.dylib 2>/dev/null | head -1 || true)"
-if [ -n "${existing}" ] && [ "$(otool -D "${existing}" | tail -1)" = "${prefix}/lib/libluajit-5.1.2.dylib" ]; then
+source_commit="$(git -C "${src}" rev-parse HEAD 2>/dev/null || true)"
+if [ -n "${existing}" ] && [ "${source_commit}" = "${commit}" ] && \
+   [ "$(otool -D "${existing}" | tail -1)" = "${prefix}/lib/libluajit-5.1.2.dylib" ]; then
   echo "LuaJIT already built: ${existing}" >&2
   echo "${prefix}"
   exit 0

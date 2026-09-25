@@ -16,6 +16,20 @@ jobs:
         run: brew install cmake ninja pkgconf
       - name: Package Apple Silicon app
         run: tools/macos/package_app.sh
+      - name: Parse Lua sources with bundled LuaJIT
+        run: |
+          git ls-files src | build/luajit/bin/luajit -e '
+            local count = 0
+            for path in io.lines() do
+              if path:match("%.lua$") then
+                local chunk, err = loadfile(path)
+                assert(chunk, err)
+                count = count + 1
+              end
+            end
+            assert(count > 0)
+            print("Parsed " .. count .. " Lua files")
+          '
       - name: Verify artifact
         run: |
           set -euo pipefail
