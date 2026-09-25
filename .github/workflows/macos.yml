@@ -23,6 +23,7 @@ jobs:
           exe="${app}/Contents/MacOS/PathOfBuilding-PoE2"
           file "${exe}" | grep -q 'arm64'
           codesign --verify --strict "${exe}"
+          codesign --verify --strict --deep "${app}"
           for library in "${app}"/Contents/Frameworks/*.dylib; do
             codesign --verify --strict "${library}"
             vtool -show-build "${library}" | grep -Eq 'minos (11|12|13)\.'

@@ -14,10 +14,6 @@ mkdir -p "${dist_dir}"
 rm -rf "${app_dst}"
 cp -R "${app_src}" "${app_dst}"
 
-# Make the app self-contained (bundle Homebrew dylibs into Contents/Frameworks
-# and rewrite install names) so it launches on Macs without Homebrew.
-"${repo_root}/tools/macos/bundle_dylibs.sh" "${app_dst}"
-
 resources="${app_dst}/Contents/Resources"
 mkdir -p "${resources}"
 rsync -a --delete \
@@ -47,6 +43,12 @@ mkdir -p "${resources}/ThirdPartyLicenses"
 cp "${repo_root}/build/dependencies/sources/SDL3-3.4.16/LICENSE.txt" "${resources}/ThirdPartyLicenses/SDL3.txt"
 cp "${repo_root}/build/dependencies/sources/zstd-1.5.7/LICENSE" "${resources}/ThirdPartyLicenses/zstd.txt"
 cp "${repo_root}/build/luajit-src/COPYRIGHT" "${resources}/ThirdPartyLicenses/LuaJIT.txt"
+
+# Add the native libraries and sign only after Info.plist and bundle resources
+# have their final contents. Changing Info.plist after signing invalidates the
+# executable's signature, even when verifying the executable by itself.
+"${repo_root}/tools/macos/bundle_dylibs.sh" "${app_dst}"
+codesign --verify --strict --deep "${app_dst}"
 
 zip_name="PathOfBuilding-PoE2-macos-arm64.zip"
 ditto -c -k --keepParent "${app_dst}" "${dist_dir}/${zip_name}"
